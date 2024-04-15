@@ -1,4 +1,4 @@
-const { expect } = require("chai");
+const { expect, assert } = require("chai");
 const { ethers } = require("hardhat");
 const {abi, bytecode} = require("usingtellor/artifacts/contracts/TellorPlayground.sol/TellorPlayground.json");
 
@@ -13,11 +13,11 @@ describe("Test EZBet", function() {
   const questionArgs = abiCoder.encode(["string"], [_myQ]);
   const EZBET_QUERY_DATA = abiCoder.encode(["string", "bytes"], ["StringQuery", questionArgs]);
   const EZBET_QUERY_ID = ethers.utils.keccak256(EZBET_QUERY_DATA);
-  let iBal;
+  let iBal, _myEndDate, accounts;
 
   // Set up Tellor Playground Oracle and SampleUsingTellor
   beforeEach(async function () {
-    let accounts = await ethers.getSigners();
+    accounts = await ethers.getSigners();
     iBal = await ethers.provider.getBalance(accounts[0].address);
     console.log(iBal);
     let TellorOracle = await ethers.getContractFactory(abi, bytecode);
@@ -26,7 +26,7 @@ describe("Test EZBet", function() {
 
     let blockNumBefore = await ethers.provider.getBlockNumber();
     let  blockBefore = await ethers.provider.getBlock(blockNumBefore);
-    let _myEndDate = blockBefore.timestamp + 86400*3;
+    _myEndDate = blockBefore.timestamp + 86400*3;
 
     let Ezbet = await ethers.getContractFactory("EZBet");
     ezbet = await Ezbet.deploy(tellorOracle.address, _myQ,BigInt(1e18),BigInt(1e18),_myEndDate,{value:BigInt(2e18)});
@@ -34,7 +34,12 @@ describe("Test EZBet", function() {
   });
 
   it("constructor", async function() {
-
+    assert(await ezbet.question.call() == _myQ, "question should be the same")
+    assert(await ezbet.endDate.call() == _myEndDate, "end date should match")
+    let newBal = await ethers.provider.getBalance(accounts[0].address);
+    assert(BigInt(iBal - newBal) - BigInt(2e18) > 0)
+    assert(BigInt(iBal - newBal) - BigInt(2e18) < BigInt(3e16))//little wiggle room for gas
+    assert(await ezbet.tellor() == tellorOracle.address, "tellor should be set properly");
   });
   // it("betOnNo", async function() {
 

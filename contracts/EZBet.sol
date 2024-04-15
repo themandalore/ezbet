@@ -35,12 +35,15 @@ contract EZBet is UsingTellor {
         require(_amountNo > 0 && _amountYes > 0);
         require(msg.value == _amountNo + _amountYes);
         require(_endDate > block.timestamp);
+        addyToYes[msg.sender] = addyToYes[msg.sender] + _amountYes;
+        addyToNo[msg.sender] = addyToNo[msg.sender] + _amountNo;
         endDate = _endDate;
     }
 
 
     function betOnYes(uint256 _amt) external payable{
         require(block.timestamp < endDate);
+        require(_amt > 0);
         require(_amt == msg.value);
         addyToYes[msg.sender] = addyToYes[msg.sender] + msg.value;
         yesBets += msg.value;
@@ -49,6 +52,7 @@ contract EZBet is UsingTellor {
 
     function betOnNo(uint256 _amt) external payable{
         require(block.timestamp < endDate);
+        require(_amt > 0);
         require(_amt == msg.value);
         addyToNo[msg.sender] = addyToNo[msg.sender] + msg.value;
         noBets += msg.value;
@@ -58,18 +62,23 @@ contract EZBet is UsingTellor {
     function claimWinnings() external{
         if(settled){
             uint256 _amt;
-            if(yesWins || unresolved){
-                _amt = addyToYes[msg.sender];
+            uint256 _myAmt;
+            if(unresolved){
+                _amt = addyToYes[msg.sender] + addyToNo[msg.sender];
+            }
+            else if(yesWins ){
+                _myAmt = addyToYes[msg.sender];
+                _amt = (noBets * _myAmt/yesBets) + _myAmt;
                 addyToYes[msg.sender] = 0;
-                payable(msg.sender).transfer(_amt);
-                emit WinningsClaimed(msg.sender, _amt);
             }
-            if(!yesWins || unresolved){
-                _amt = addyToNo[msg.sender];
+            else{
+                _myAmt = addyToNo[msg.sender];
+                _amt = (yesBets * _myAmt/noBets) + _myAmt;
                 addyToNo[msg.sender] = 0;
-                payable(msg.sender).transfer(_amt);
-                emit WinningsClaimed(msg.sender, _amt);
             }
+            require(_amt > 0, "amount must be greater than 0");
+            payable(msg.sender).transfer(_amt);
+            emit WinningsClaimed(msg.sender, _amt);
         }
     }
 
@@ -79,6 +88,7 @@ contract EZBet is UsingTellor {
         // Retrieve data at least 24 hours old to allow time for disputes
         (bytes memory _value, uint256 _timestampRetrieved) =
             getDataAfter(queryId, endDate);
+        require(_timestampRetrieved !=0);
         // If timestampRetrieved is 0, no data was found
         if(block.timestamp - _timestampRetrieved > 24 hours) {
                 settled = true;
