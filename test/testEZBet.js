@@ -19,15 +19,12 @@ describe("Test EZBet", function() {
   beforeEach(async function () {
     accounts = await ethers.getSigners();
     iBal = await ethers.provider.getBalance(accounts[0].address);
-    console.log(iBal);
     let TellorOracle = await ethers.getContractFactory(abi, bytecode);
     tellorOracle = await TellorOracle.deploy();
     await tellorOracle.deployed();
-
     let blockNumBefore = await ethers.provider.getBlockNumber();
     let  blockBefore = await ethers.provider.getBlock(blockNumBefore);
     _myEndDate = blockBefore.timestamp + 86400*3;
-
     let Ezbet = await ethers.getContractFactory("EZBet");
     ezbet = await Ezbet.deploy(tellorOracle.address, _myQ,BigInt(1e18),BigInt(1e18),_myEndDate,{value:BigInt(2e18)});
     await ezbet.deployed();
@@ -41,12 +38,26 @@ describe("Test EZBet", function() {
     assert(BigInt(iBal - newBal) - BigInt(2e18) < BigInt(3e16))//little wiggle room for gas
     assert(await ezbet.tellor() == tellorOracle.address, "tellor should be set properly");
   });
-  // it("betOnNo", async function() {
-
-  // };
-  // it("betOnYes", async function() {
-
-  // };
+  it("betOnNo", async function() {
+    let iBal1 = await ethers.provider.getBalance(accounts[1].address);
+    await ezbet.connect(accounts[1]).betOnNo(BigInt(4e18),{value:BigInt(4e18)})
+    let newBal = await ethers.provider.getBalance(accounts[1].address);
+    assert(BigInt(iBal1 - newBal) - BigInt(4e18) > 0)
+    assert(BigInt(iBal1 - newBal) - BigInt(4e18) < BigInt(3e16))//little wiggle room for gas
+    let _val = await ezbet.addyToNo(accounts[1].address)
+    assert(_val == BigInt(4e18), "val should be right")
+    assert(await ezbet.noBets.call() == BigInt(4e18), "noBets should be right")
+  });
+  it("betOnYes", async function() {
+    let iBal1 = await ethers.provider.getBalance(accounts[2].address);
+    await ezbet.connect(accounts[2]).betOnYes(BigInt(4e18),{value:BigInt(4e18)})
+    let newBal = await ethers.provider.getBalance(accounts[2].address);
+    assert(BigInt(iBal1 - newBal) - BigInt(4e18) > 0)
+    assert(BigInt(iBal1 - newBal) - BigInt(4e18) < BigInt(3e16))//little wiggle room for gas
+    let _val = await ezbet.addyToYes(accounts[2].address)
+    assert(_val == BigInt(4e18), "val should be right")
+    assert(await ezbet.yesBets.call() == BigInt(4e18), "noBets should be right")
+  });
   // it("settleBett", async function() {
 
   // };

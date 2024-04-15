@@ -19,8 +19,8 @@ contract EZBet is UsingTellor {
     uint256 public yesBets;
     uint256 public noBets;
     uint256 public endDate;
-    mapping(address => uint256) addyToYes;
-    mapping(address => uint256) addyToNo;
+    mapping(address => uint256) public addyToYes;
+    mapping(address => uint256) public addyToNo;
 
 
     event BetSettled(bool _yesWins);
@@ -51,7 +51,7 @@ contract EZBet is UsingTellor {
     }
 
     function betOnNo(uint256 _amt) external payable{
-        require(block.timestamp < endDate);
+        require(block.timestamp < endDate, "endDate passed");
         require(_amt > 0);
         require(_amt == msg.value);
         addyToNo[msg.sender] = addyToNo[msg.sender] + msg.value;
