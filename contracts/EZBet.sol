@@ -108,10 +108,10 @@ contract EZBet is UsingTellor {
         if (block.timestamp - _timestampRetrieved < 24 hours){
             _timeUntilSettlement = 24 hours - (block.timestamp - _timestampRetrieved);
         }
-        if(keccak256(_value) ==  keccak256("Yes")){
+        if(keccak256(_value) == keccak256(abi.encode("Yes"))){
                     _yesWins = true;
                 }
-                else if(keccak256(_value) != keccak256("No")){
+        else if(keccak256(_value) != keccak256(abi.encode("No"))){
                     _unresolved = true;
         }
         return (settled, _yesWins, _unresolved, string(_value),_timeUntilSettlement);
