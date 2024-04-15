@@ -11,8 +11,8 @@ contract EZBet is UsingTellor {
     // also run your own node (just throwing that in there)
 
     string public question;
-    bytes public queryData = abi.encode("StringQuery", abi.encode(question));
-    bytes32 public queryId = keccak256(queryData);
+    bytes public queryData;
+    bytes32 public queryId;
     bool public settled;
     bool public yesWins;
     bool public unresolved;
@@ -32,6 +32,8 @@ contract EZBet is UsingTellor {
     constructor(address payable _tellorAddress, string memory _question, uint _amountYes, uint _amountNo, uint256 _endDate)
         UsingTellor(_tellorAddress) payable{
         question = _question;
+        queryData = abi.encode("StringQuery", abi.encode(question));
+        queryId = keccak256(queryData);
         require(_amountNo > 0 && _amountYes > 0, "amounts must be > 0");
         require(msg.value == _amountNo + _amountYes, "must send funds");
         require(_endDate > block.timestamp, "end date must be in the future");
@@ -90,7 +92,7 @@ contract EZBet is UsingTellor {
             getDataAfter(queryId, endDate);
         require(_timestampRetrieved !=0, "no tellor value");
         // If timestampRetrieved is 0, no data was found
-        if(block.timestamp - _timestampRetrieved > 24 hours) {
+        if(block.timestamp - _timestampRetrieved >= 24 hours) {
                 settled = true;
                 if(keccak256(_value) == keccak256(abi.encode("Yes"))){
                             yesWins = true;

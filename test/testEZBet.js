@@ -58,9 +58,20 @@ describe("Test EZBet", function() {
     assert(_val == BigInt(4e18), "val should be right")
     assert(await ezbet.yesBets.call() == BigInt(4e18), "noBets should be right")
   });
-  // it("settleBet", async function() {
-
-  // };
+  it("settleBet", async function() {
+    await ezbet.connect(accounts[1]).betOnNo(BigInt(4e18),{value:BigInt(4e18)})
+    await ezbet.connect(accounts[2]).betOnYes(BigInt(4e18),{value:BigInt(4e18)})
+    // advance block timestamp by 15 minutes to allow our value to be retrieved
+    await ethers.provider.send("evm_increaseTime", [86400 * 3.5]);
+    await ethers.provider.send("evm_mine");
+    await tellorOracle.submitValue(EZBET_QUERY_ID, yesArgs, 0, EZBET_QUERY_DATA);
+    await ethers.provider.send("evm_increaseTime", [86400 + 100]);
+    await ethers.provider.send("evm_mine");
+    await ezbet.settleBet();
+    assert(await ezbet.yesWins.call(), "yes should win")
+    assert(await ezbet.unresolved.call() == false, "should be resolved")
+    assert(await ezbet.settled.call(), "should be settled")
+  });
   // it("claimWinnings", async function() {
 
   // };
