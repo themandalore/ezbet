@@ -58,7 +58,7 @@ describe("Test EZBet", function() {
     assert(_val == BigInt(4e18), "val should be right")
     assert(await ezbet.yesBets.call() == BigInt(4e18), "noBets should be right")
   });
-  // it("settleBett", async function() {
+  // it("settleBet", async function() {
 
   // };
   // it("claimWinnings", async function() {

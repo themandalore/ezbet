@@ -32,9 +32,9 @@ contract EZBet is UsingTellor {
     constructor(address payable _tellorAddress, string memory _question, uint _amountYes, uint _amountNo, uint256 _endDate)
         UsingTellor(_tellorAddress) payable{
         question = _question;
-        require(_amountNo > 0 && _amountYes > 0);
-        require(msg.value == _amountNo + _amountYes);
-        require(_endDate > block.timestamp);
+        require(_amountNo > 0 && _amountYes > 0, "amounts must be > 0");
+        require(msg.value == _amountNo + _amountYes, "must send funds");
+        require(_endDate > block.timestamp, "end date must be in the future");
         addyToYes[msg.sender] = addyToYes[msg.sender] + _amountYes;
         addyToNo[msg.sender] = addyToNo[msg.sender] + _amountNo;
         endDate = _endDate;
@@ -42,18 +42,18 @@ contract EZBet is UsingTellor {
 
 
     function betOnYes(uint256 _amt) external payable{
-        require(block.timestamp < endDate);
-        require(_amt > 0);
-        require(_amt == msg.value);
+        require(block.timestamp < endDate, "end date passed");
+        require(_amt > 0, "amount too low");
+        require(_amt == msg.value, "amount != msg.value");
         addyToYes[msg.sender] = addyToYes[msg.sender] + msg.value;
         yesBets += msg.value;
         emit YesBet(msg.sender,msg.value);
     }
 
     function betOnNo(uint256 _amt) external payable{
-        require(block.timestamp < endDate, "endDate passed");
-        require(_amt > 0);
-        require(_amt == msg.value);
+        require(block.timestamp < endDate, "end date passed");
+        require(_amt > 0, "amount too low");
+        require(_amt == msg.value, "amount != msg.value");
         addyToNo[msg.sender] = addyToNo[msg.sender] + msg.value;
         noBets += msg.value;
         emit NoBet(msg.sender,msg.value);
@@ -84,19 +84,19 @@ contract EZBet is UsingTellor {
 
     //can be run 24 hours after the match is reported to Tellor
     function settleBet() external{
-        require(!settled);
+        require(!settled, "settled");
         // Retrieve data at least 24 hours old to allow time for disputes
         (bytes memory _value, uint256 _timestampRetrieved) =
             getDataAfter(queryId, endDate);
-        require(_timestampRetrieved !=0);
+        require(_timestampRetrieved !=0, "no tellor value");
         // If timestampRetrieved is 0, no data was found
         if(block.timestamp - _timestampRetrieved > 24 hours) {
                 settled = true;
-                if(keccak256(_value) ==  keccak256("Yes")){
-                    yesWins = true;
-                }
-                else if(keccak256(_value) !=  keccak256("No")){
-                    unresolved = true;
+                if(keccak256(_value) == keccak256(abi.encode("Yes"))){
+                            yesWins = true;
+                        }
+                else if(keccak256(_value) != keccak256(abi.encode("No"))){
+                            unresolved = true;
                 }
                 emit BetSettled(yesWins);
         }
