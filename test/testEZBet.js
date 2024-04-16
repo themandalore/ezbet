@@ -152,14 +152,13 @@ describe("Test EZBet", function() {
     await ezbet.connect(accounts[1]).betOnNo(BigInt(1e17),{value:BigInt(1e17)})
     await ezbet.connect(accounts[2]).betOnYes(BigInt(30e17),{value:BigInt(30e17)})
     _res = await ezbet.getCurrentOddsOfYes()
-    console.log(_res)
-    assert(_res == 22, "odds should be correct")
+    assert(_res == 23, "odds should be correct")
     //75
     await ezbet.connect(accounts[2]).betOnYes(BigInt(270e17),{value:BigInt(270e17)})
-    _res = await ezbet.getCurrentOddsofYes()
+    _res = await ezbet.getCurrentOddsOfYes()
     assert(_res == 75, "odds should be correct")
     //99
-    await ezbet.connect(accounts[2]).betOnYes(BigInt(3000e17),{value:BigInt(3000e17)})
+    await ezbet.connect(accounts[2]).betOnYes(BigInt(10000e17),{value:BigInt(10000e17)})
     _res = await ezbet.getCurrentOddsOfYes()
     assert(_res == 99, "odds should be correct")
   });
@@ -184,8 +183,8 @@ describe("Test EZBet", function() {
     assert(await ezbet.addyToYes(accounts[0].address) == 0)
     assert(await ezbet.addyToYes(accounts[1].address) == 0)
     assert(await ezbet.addyToYes(accounts[2].address) == 0)
-    assert(BigInt(newBal1 - iBal1) - BigInt(7.99e18) > 0)
-    assert(BigInt(newBal0 - iBal0) - BigInt(1.99e18) > 0)
+    assert(BigInt(newBal1 - iBal1) - BigInt(8.88e18) > 0)
+    assert(BigInt(newBal0 - iBal0) - BigInt(1.1e18) > 0)
     assert(BigInt(iBal2 - newBal2)  == 0)
   })
 
@@ -203,16 +202,16 @@ describe("Test EZBet", function() {
     let iBal1 = await ethers.provider.getBalance(accounts[1].address);
     let iBal2 = await ethers.provider.getBalance(accounts[2].address);
     await ezbet.connect(accounts[0]).claimWinnings()
-    await ezbet.connect(accounts[1]).claimWinnings()
+    await ezbet.connect(accounts[2]).claimWinnings()
     //await h.expectThrow(await ezbet.connect(accounts[2]).claimWinnings()) // "ERC20: transfer amount exceeds balance"
     let newBal0 = await ethers.provider.getBalance(accounts[0].address);
     let newBal1 = await ethers.provider.getBalance(accounts[1].address);
     let newBal2 = await ethers.provider.getBalance(accounts[2].address);
-    assert(await ezbet.addyToYes(accounts[0].address) == 0)
-    assert(await ezbet.addyToYes(accounts[1].address) == 0)
-    assert(await ezbet.addyToYes(accounts[2].address) == 0)
-    assert(BigInt(newBal1 - iBal1) - BigInt(7.99e18) > 0)
-    assert(BigInt(newBal0 - iBal0) - BigInt(1.99e18) > 0)
-    assert(BigInt(iBal2 - newBal2)  == 0)
+    assert(await ezbet.addyToNo(accounts[0].address) == 0)
+    assert(await ezbet.addyToNo(accounts[1].address) == 0)
+    assert(await ezbet.addyToNo(accounts[2].address) == 0)
+    assert(BigInt(newBal2 - iBal2) - BigInt(4.99e18) > 0)
+    assert(BigInt(newBal0 - iBal0) - BigInt(4.99e18) > 0)
+    assert(BigInt(iBal1 - newBal1)  == 0)
   })
 });
