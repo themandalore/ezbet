@@ -19,6 +19,7 @@ contract EZBet is UsingTellor {
     uint256 public yesBets;
     uint256 public noBets;
     uint256 public endDate;
+    uint256 public delay = 12 hours;//time for match (so bets happen, then delay, then 24 hours for tellor report)
     mapping(address => uint256) public addyToYes;
     mapping(address => uint256) public addyToNo;
 
@@ -37,8 +38,10 @@ contract EZBet is UsingTellor {
         require(_amountNo > 0 && _amountYes > 0, "amounts must be > 0");
         require(msg.value == _amountNo + _amountYes, "must send funds");
         require(_endDate > block.timestamp, "end date must be in the future");
-        addyToYes[msg.sender] = addyToYes[msg.sender] + _amountYes;
-        addyToNo[msg.sender] = addyToNo[msg.sender] + _amountNo;
+        addyToYes[msg.sender] = _amountYes;
+        addyToNo[msg.sender] = _amountNo;
+        yesBets = _amountYes;
+        noBets = _amountNo;
         endDate = _endDate;
     }
 
@@ -89,7 +92,7 @@ contract EZBet is UsingTellor {
         require(!settled, "settled");
         // Retrieve data at least 24 hours old to allow time for disputes
         (bytes memory _value, uint256 _timestampRetrieved) =
-            getDataAfter(queryId, endDate);
+            getDataAfter(queryId, endDate + delay);
         require(_timestampRetrieved !=0, "no tellor value");
         // If timestampRetrieved is 0, no data was found
         if(block.timestamp - _timestampRetrieved >= 24 hours) {
@@ -106,7 +109,7 @@ contract EZBet is UsingTellor {
 
     function getSettlementStatus() external view
         returns(bool,bool _yesWins, bool _unresolved,string memory,uint256 _timeUntilSettlement){
-        (bytes memory _value, uint256 _timestampRetrieved) = getDataAfter(queryId, endDate);
+        (bytes memory _value, uint256 _timestampRetrieved) = getDataAfter(queryId, endDate + delay);
         if (block.timestamp - _timestampRetrieved < 24 hours){
             _timeUntilSettlement = 24 hours - (block.timestamp - _timestampRetrieved);
         }
