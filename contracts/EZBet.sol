@@ -3,6 +3,12 @@ pragma solidity >=0.8.0;
 
 import "usingtellor/contracts/UsingTellor.sol";
 
+/**
+ @author themandalore
+ @title EZBet
+ @dev This is a contract for making a simple bet.  Vote yes or vote no.  Yes deposits split the no pot if yes, and vice-versa
+ endDate is when betting stop, 12 hours (the delay variable) for the event, then 24 hours after tellor report to wait for disputes
+*/
 contract EZBet is UsingTellor {
     // Question must resolve with "Yes" or "No".  Anything else is invalid and you just get your money back.  Even "YES" or "NO" or "yes" or "no".
     // Be retarded, but that not retarded. You can check if it properly settles and dispute if need be*/
@@ -29,7 +35,14 @@ contract EZBet is UsingTellor {
     event YesBet(address _addy, uint256 _amt);
     event WinningsClaimed(address _addy, uint256 _amt);
 
-    // Input tellor oracle address
+    /**
+     * @dev constructor to kick things off
+     * @param _tellorAddress the tellor oracle (TellorFlex.sol) address
+     * @param _question the question you want to ask, be sure to have it resolve Yes or No
+     * @param _amountYes initial yes bet
+     * @param _amountNo initial no bet
+     * @param _endDate time that the betting ends.  event ends 12 hours later. Tellor has 24 hours to report
+     */
     constructor(address payable _tellorAddress, string memory _question, uint _amountYes, uint _amountNo, uint256 _endDate)
         UsingTellor(_tellorAddress) payable{
         question = _question;
@@ -45,7 +58,10 @@ contract EZBet is UsingTellor {
         endDate = _endDate;
     }
 
-
+    /**
+     * @dev allows user to bet on the question resolving yes
+     * @param _amt a uint for the amount of eth you want to send
+     */
     function betOnYes(uint256 _amt) external payable{
         require(block.timestamp < endDate, "end date passed");
         require(_amt > 0, "amount too low");
@@ -55,6 +71,10 @@ contract EZBet is UsingTellor {
         emit YesBet(msg.sender,msg.value);
     }
 
+    /**
+     * @dev allows user to bet on the question resolving no
+     * @param _amt a uint for the amount of eth you want to send
+     */
     function betOnNo(uint256 _amt) external payable{
         require(block.timestamp < endDate, "end date passed");
         require(_amt > 0, "amount too low");
@@ -64,6 +84,9 @@ contract EZBet is UsingTellor {
         emit NoBet(msg.sender,msg.value);
     }
     
+    /**
+     * @dev allows parties who bet to claim their winnings
+     */
     function claimWinnings() external{
         if(settled){
             uint256 _amt;
@@ -87,14 +110,15 @@ contract EZBet is UsingTellor {
         }
     }
 
-    //can be run 24 hours after the match is reported to Tellor
+    /**
+     * @dev allows anyone to settle the bet, 36 hours after the endDate (and a valid tellor report 24 hours old)
+     */
+     //can be run 24 hours after the match is reported to Tellor
     function settleBet() external{
         require(!settled, "settled");
-        // Retrieve data at least 24 hours old to allow time for disputes
         (bytes memory _value, uint256 _timestampRetrieved) =
             getDataAfter(queryId, endDate + delay);
         require(_timestampRetrieved !=0, "no tellor value");
-        // If timestampRetrieved is 0, no data was found
         if(block.timestamp - _timestampRetrieved >= 24 hours) {
                 settled = true;
                 if(keccak256(_value) == keccak256(abi.encode("Yes"))){
@@ -107,6 +131,17 @@ contract EZBet is UsingTellor {
         }
     }
 
+    //view functions
+    /**
+     * @dev shows you the current odds of yes, rounded down to nearest pct
+     */
+    function getCurrentOddsOfYes() external view returns(uint256){
+        return (yesBets * 100)/(yesBets + noBets);
+    }
+
+    /**
+     * @dev allows you to check how the market will settle and how long until settlement
+     */
     function getSettlementStatus() external view
         returns(bool,bool _yesWins, bool _unresolved,string memory,uint256 _timeUntilSettlement){
         (bytes memory _value, uint256 _timestampRetrieved) = getDataAfter(queryId, endDate + delay);
@@ -128,9 +163,5 @@ contract EZBet is UsingTellor {
             _timeUntilSettlement = (endDate + delay + 24 hours) - block.timestamp;
         }
         return (settled, _yesWins, _unresolved, string(_value),_timeUntilSettlement);
-    }
-
-    function getCurrentOddsOfYes() external view returns(uint256){
-        return (yesBets * 100)/(yesBets + noBets);
     }
 }
