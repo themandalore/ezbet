@@ -110,22 +110,22 @@ contract EZBet is UsingTellor {
     function getSettlementStatus() external view
         returns(bool,bool _yesWins, bool _unresolved,string memory,uint256 _timeUntilSettlement){
         (bytes memory _value, uint256 _timestampRetrieved) = getDataAfter(queryId, endDate + delay);
-        if(_timestampRetrieved > block.timestamp){
-            _timeUntilSettlement = 0;
-        }
-        else if (block.timestamp - _timestampRetrieved < 24 hours){
-            _timeUntilSettlement = 24 hours - (block.timestamp - _timestampRetrieved);
-        }
-        else{
-            _timeUntilSettlement = (endDate + delay + 24 hours) - block.timestamp;
-        }
         if(_timestampRetrieved > 0){
+                    if( block.timestamp > _timestampRetrieved + 24 hours){
+            _timeUntilSettlement = 0;
+            }
+            else if (block.timestamp - _timestampRetrieved < 24 hours){
+                _timeUntilSettlement = 24 hours - (block.timestamp - _timestampRetrieved);
+            }
             if(keccak256(_value) == keccak256(abi.encode("Yes"))){
                         _yesWins = true;
                     }
             else if(keccak256(_value) != keccak256(abi.encode("No"))){
                         _unresolved = true;
             }
+        }
+        else{
+            _timeUntilSettlement = (endDate + delay + 24 hours) - block.timestamp;
         }
         return (settled, _yesWins, _unresolved, string(_value),_timeUntilSettlement);
     }
