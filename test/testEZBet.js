@@ -13,7 +13,7 @@ describe("Test EZBet", function() {
   const questionArgs = abiCoder.encode(["string"], [_myQ]);
   const EZBET_QUERY_DATA = abiCoder.encode(["string", "bytes"], ["StringQuery", questionArgs]);
   const EZBET_QUERY_ID = ethers.utils.keccak256(EZBET_QUERY_DATA);
-  let iBal, _myEndDate, accounts;
+  let Ezbet, iBal, _myEndDate, accounts;
 
   // Set up Tellor Playground Oracle and SampleUsingTellor
   beforeEach(async function () {
@@ -25,7 +25,7 @@ describe("Test EZBet", function() {
     let blockNumBefore = await ethers.provider.getBlockNumber();
     let  blockBefore = await ethers.provider.getBlock(blockNumBefore);
     _myEndDate = blockBefore.timestamp + 86400*3;
-    let Ezbet = await ethers.getContractFactory("EZBet");
+    Ezbet = await ethers.getContractFactory("EZBet");
     ezbet = await Ezbet.connect(accounts[0]).deploy(tellorOracle.address, _myQ,BigInt(1e18),BigInt(1e18),_myEndDate,{value:BigInt(2e18)});
     await ezbet.deployed();
   });
@@ -100,12 +100,66 @@ describe("Test EZBet", function() {
     assert(BigInt(newBal0 - iBal0) - BigInt(1.99e18) > 0)
     assert(BigInt(iBal2 - newBal2)  == 0)
   });
-  // it("getSettlementStatus", async function() {
-
-  // }
-  // it("getCurrentOdds", async function() {
-
-  // };
+  it("getSettlementStatus", async function() {
+    await ezbet.connect(accounts[1]).betOnYes(BigInt(4e18),{value:BigInt(4e18)})
+    await ezbet.connect(accounts[2]).betOnNo(BigInt(4e18),{value:BigInt(4e18)})
+    // advance block timestamp by 15 minutes to allow our value to be retrieved
+    let _res = await ezbet.getSettlementStatus()
+    let blockNumBefore = await ethers.provider.getBlockNumber();
+    let  block = await ethers.provider.getBlock(blockNumBefore);
+    assert(_res[0] == false, "settled should be correct")
+    assert(_res[1] == false, "yesWins should be correct")
+    console.log("val: ",_res[3])
+    assert(_res[2] == false, "unresolved should be correct")
+    assert(_res[3] == "", "_value should be correct")
+    assert(_res[4] == (_myEndDate + 1.5 * 86400) - block.timestamp)
+    await ethers.provider.send("evm_increaseTime", [86400 * 3.5]);
+    await ethers.provider.send("evm_mine");
+    await tellorOracle.submitValue(EZBET_QUERY_ID, yesArgs, 0, EZBET_QUERY_DATA);
+    _res = await ezbet.getSettlementStatus()
+    blockNumBefore = await ethers.provider.getBlockNumber();
+    block = await ethers.provider.getBlock(blockNumBefore);
+    assert(_res[0] == false, "settled should be correct")
+    assert(_res[1] == true, "yesWins should be correct")
+    assert(_res[2] == false, "unresolved should be correct")
+    assert(_res[3] == yesArgs, "_value should be correct")
+    assert(_res[4] == (_myEndDate + 1.5 * 86400) - block.timestamp)
+    await ethers.provider.send("evm_increaseTime", [86400 + 100]);
+    await ethers.provider.send("evm_mine");
+    await ezbet.settleBet();
+    _res = await ezbet.getSettlementStatus()
+    blockNumBefore = await ethers.provider.getBlockNumber();
+    block = await ethers.provider.getBlock(blockNumBefore);
+    assert(_res[0] == true, "settled should be correct")
+    assert(_res[1] == true, "yesWins should be correct")
+    assert(_res[2] == false, "unresolved should be correct")
+    assert(_res[3] == yesArgs, "_value should be correct")
+    assert(_res[4] == 0)
+  });
+  it("getCurrentOdds", async function() {
+    ezbet = await Ezbet.connect(accounts[0]).deploy(tellorOracle.address, _myQ,BigInt(1e17),BigInt(1e17),_myEndDate,{value:BigInt(2e17)});
+    await ezbet.deployed();
+    //50
+    let _res = await ezbet.getCurrentOddsOfYes()
+    assert(_res == 50, "odds should be correct")
+    //1
+    await ezbet.connect(accounts[1]).betOnNo(BigInt(98e17),{value:BigInt(98e17)})
+    _res = await ezbet.getCurrentOddsOfYes()
+    assert(_res == 1, "odds should be correct")
+    //25
+    await ezbet.connect(accounts[1]).betOnNo(BigInt(1e17),{value:BigInt(1e17)})
+    await ezbet.connect(accounts[2]).betOnYes(BigInt(30e17),{value:BigInt(30e17)})
+    _res = await ezbet.getCurrentOddsOfYes()
+    assert(_res == 22.5, "odds should be correct")
+    //75
+    await ezbet.connect(accounts[2]).betOnYes(BigInt(270e17),{value:BigInt(270e17)})
+    _res = await ezbet.getCurrentOddsofYes()
+    assert(_res == 75, "odds should be correct")
+    //99
+    await ezbet.connect(accounts[2]).betOnYes(BigInt(3000e17),{value:BigInt(3000e17)})
+    _res = await ezbet.getCurrentOddsOfYes()
+    assert(_res == 99, "odds should be correct")
+  });
   // it("full Yes", async function() {
   //   //place a bet on each side (verify bets are properly tracked)
   //   // fast forward
