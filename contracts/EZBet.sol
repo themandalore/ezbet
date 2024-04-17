@@ -93,6 +93,8 @@ contract EZBet is UsingTellor {
             uint256 _myAmt;
             if(unresolved){
                 _amt = addyToYes[msg.sender] + addyToNo[msg.sender];
+                addyToYes[msg.sender] = 0; 
+                addyToNo[msg.sender] = 0; 
             }
             else if(yesWins ){
                 _myAmt = addyToYes[msg.sender];
