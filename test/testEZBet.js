@@ -46,7 +46,7 @@ describe("Test EZBet", function() {
   });
   it("betOnNo", async function() {
     let iBal1 = await ethers.provider.getBalance(accounts[1].address);
-    await ezbet.connect(accounts[1]).betOnNo(BigInt(4e18),{value:BigInt(4e18)})
+    await ezbet.connect(accounts[1]).betOnNo({value:BigInt(4e18)})
     let newBal = await ethers.provider.getBalance(accounts[1].address);
     assert(BigInt(iBal1 - newBal) - BigInt(4e18) > 0)
     assert(BigInt(iBal1 - newBal) - BigInt(4e18) < BigInt(3e16))//little wiggle room for gas
@@ -56,7 +56,7 @@ describe("Test EZBet", function() {
   });
   it("betOnYes", async function() {
     let iBal1 = await ethers.provider.getBalance(accounts[2].address);
-    await ezbet.connect(accounts[2]).betOnYes(BigInt(4e18),{value:BigInt(4e18)})
+    await ezbet.connect(accounts[2]).betOnYes({value:BigInt(4e18)})
     let newBal = await ethers.provider.getBalance(accounts[2].address);
     assert(BigInt(iBal1 - newBal) - BigInt(4e18) > 0)
     assert(BigInt(iBal1 - newBal) - BigInt(4e18) < BigInt(3e16))//little wiggle room for gas
@@ -65,8 +65,8 @@ describe("Test EZBet", function() {
     assert(await ezbet.yesBets.call() == BigInt(5e18), "yesBets should be right")
   });
   it("settleBet", async function() {
-    await ezbet.connect(accounts[1]).betOnNo(BigInt(4e18),{value:BigInt(4e18)})
-    await ezbet.connect(accounts[2]).betOnYes(BigInt(4e18),{value:BigInt(4e18)})
+    await ezbet.connect(accounts[1]).betOnNo({value:BigInt(4e18)})
+    await ezbet.connect(accounts[2]).betOnYes({value:BigInt(4e18)})
     // advance block timestamp by 15 minutes to allow our value to be retrieved
     await ethers.provider.send("evm_increaseTime", [86400 * 3.5]);
     await ethers.provider.send("evm_mine");
@@ -79,8 +79,8 @@ describe("Test EZBet", function() {
     assert(await ezbet.settled.call(), "should be settled")
   });
   it("claimWinnings", async function() {
-    await ezbet.connect(accounts[1]).betOnYes(BigInt(4e18),{value:BigInt(4e18)})
-    await ezbet.connect(accounts[2]).betOnNo(BigInt(4e18),{value:BigInt(4e18)})
+    await ezbet.connect(accounts[1]).betOnYes({value:BigInt(4e18)})
+    await ezbet.connect(accounts[2]).betOnNo({value:BigInt(4e18)})
     // advance block timestamp by 15 minutes to allow our value to be retrieved
     await ethers.provider.send("evm_increaseTime", [86400 * 3.5]);
     await ethers.provider.send("evm_mine");
@@ -105,8 +105,8 @@ describe("Test EZBet", function() {
     assert(BigInt(iBal2 - newBal2)  == 0)
   });
   it("getSettlementStatus", async function() {
-    await ezbet.connect(accounts[1]).betOnYes(BigInt(4e18),{value:BigInt(4e18)})
-    await ezbet.connect(accounts[2]).betOnNo(BigInt(4e18),{value:BigInt(4e18)})
+    await ezbet.connect(accounts[1]).betOnYes({value:BigInt(4e18)})
+    await ezbet.connect(accounts[2]).betOnNo({value:BigInt(4e18)})
     // advance block timestamp by 15 minutes to allow our value to be retrieved
     let _res = await ezbet.getSettlementStatus()
     let blockNumBefore = await ethers.provider.getBlockNumber();
@@ -149,29 +149,30 @@ describe("Test EZBet", function() {
     let _res = await ezbet.getCurrentOddsOfYes()
     assert(_res == 50, "odds should be correct")
     //1
-    await ezbet.connect(accounts[1]).betOnNo(BigInt(98e17),{value:BigInt(98e17)})
+    await ezbet.connect(accounts[1]).betOnNo({value:BigInt(98e17)})
     _res = await ezbet.getCurrentOddsOfYes()
     assert(_res == 1, "odds should be correct")
     //25
-    await ezbet.connect(accounts[1]).betOnNo(BigInt(1e17),{value:BigInt(1e17)})
-    await ezbet.connect(accounts[2]).betOnYes(BigInt(30e17),{value:BigInt(30e17)})
+    await ezbet.connect(accounts[1]).betOnNo({value:BigInt(1e17)})
+    await ezbet.connect(accounts[2]).betOnYes({value:BigInt(30e17)})
     _res = await ezbet.getCurrentOddsOfYes()
     assert(_res == 23, "odds should be correct")
     //75
-    await ezbet.connect(accounts[2]).betOnYes(BigInt(270e17),{value:BigInt(270e17)})
+    await ezbet.connect(accounts[2]).betOnYes({value:BigInt(270e17)})
     _res = await ezbet.getCurrentOddsOfYes()
     assert(_res == 75, "odds should be correct")
     //99
-    await ezbet.connect(accounts[2]).betOnYes(BigInt(10000e17),{value:BigInt(10000e17)})
+    await ezbet.connect(accounts[2]).betOnYes({value:BigInt(10000e17)})
     _res = await ezbet.getCurrentOddsOfYes()
     assert(_res == 99, "odds should be correct")
   });
   it("full Yes", async function() {
-    await ezbet.connect(accounts[1]).betOnYes(BigInt(8e18),{value:BigInt(8e18)})
+    await ezbet.connect(accounts[1]).betOnYes({value:BigInt(8e18)})
     // advance block timestamp by 15 minutes to allow our value to be retrieved
     await ethers.provider.send("evm_increaseTime", [86400 * 3.5]);
     await ethers.provider.send("evm_mine");
     await tellorOracle.submitValue(EZBET_QUERY_ID, yesArgs, 0, EZBET_QUERY_DATA);
+    console.log("y", yesArgs)
     await ethers.provider.send("evm_increaseTime", [86400 + 100]);
     await ethers.provider.send("evm_mine");
     await ezbet.settleBet();
@@ -195,8 +196,8 @@ describe("Test EZBet", function() {
     assert(BigInt(iBal2 - newBal2)  < BigInt(1e16))
   })
   it("full No", async function() {
-    await ezbet.connect(accounts[1]).betOnYes(BigInt(7e18),{value:BigInt(7e18)})
-    await ezbet.connect(accounts[2]).betOnNo(BigInt(1e18),{value:BigInt(1e18)})
+    await ezbet.connect(accounts[1]).betOnYes({value:BigInt(7e18)})
+    await ezbet.connect(accounts[2]).betOnNo({value:BigInt(1e18)})
     // advance block timestamp by 15 minutes to allow our value to be retrieved
     await ethers.provider.send("evm_increaseTime", [86400 * 3.5]);
     await ethers.provider.send("evm_mine");
@@ -224,8 +225,8 @@ describe("Test EZBet", function() {
     assert(BigInt(iBal1 - newBal1)  < BigInt(1e16))
   })
   it("full Unresolved", async function() {
-    await ezbet.connect(accounts[1]).betOnYes(BigInt(4e18),{value:BigInt(4e18)})
-    await ezbet.connect(accounts[2]).betOnNo(BigInt(4e18),{value:BigInt(4e18)})
+    await ezbet.connect(accounts[1]).betOnYes({value:BigInt(4e18)})
+    await ezbet.connect(accounts[2]).betOnNo({value:BigInt(4e18)})
     // advance block timestamp by 15 minutes to allow our value to be retrieved
     await ethers.provider.send("evm_increaseTime", [86400 * 3.5]);
     await ethers.provider.send("evm_mine");
